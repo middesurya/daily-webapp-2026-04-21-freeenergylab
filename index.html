@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FreeEnergyLab — Active Inference &amp; Free Energy Principle Laboratory</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" />
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+</head>
+<body>
+  <header id="app-header">
+    <div class="header-content">
+      <div class="logo-area">
+        <div class="logo-icon" id="logo-anim"></div>
+        <div>
+          <h1>FreeEnergyLab</h1>
+          <p class="subtitle">Interactive Active Inference &amp; Free Energy Principle Laboratory</p>
+        </div>
+      </div>
+      <div class="header-badge">Karl Friston's Unified Brain Theory — Made Interactive</div>
+    </div>
+  </header>
+
+  <nav id="module-nav">
+    <button class="nav-btn active" data-module="landscape">
+      <span class="nav-icon">⛰</span>
+      <span class="nav-label">Free Energy Landscape</span>
+    </button>
+    <button class="nav-btn" data-module="markov">
+      <span class="nav-icon">◉</span>
+      <span class="nav-label">Markov Blankets</span>
+    </button>
+    <button class="nav-btn" data-module="predictive">
+      <span class="nav-icon">↕</span>
+      <span class="nav-label">Predictive Coding</span>
+    </button>
+    <button class="nav-btn" data-module="agent">
+      <span class="nav-icon">⊛</span>
+      <span class="nav-label">Agent Arena</span>
+    </button>
+    <button class="nav-btn" data-module="bayesian">
+      <span class="nav-icon">∿</span>
+      <span class="nav-label">Belief Updater</span>
+    </button>
+    <button class="nav-btn" data-module="efg">
+      <span class="nav-icon">⊕</span>
+      <span class="nav-label">EFE Decomposition</span>
+    </button>
+    <button class="nav-btn" data-module="geometry">
+      <span class="nav-icon">◈</span>
+      <span class="nav-label">Info Geometry</span>
+    </button>
+  </nav>
+
+  <main id="app-main">
+    <!-- Module 1: Free Energy Landscape -->
+    <section class="module-panel active" id="mod-landscape">
+      <div class="module-header">
+        <h2>Free Energy Landscape Explorer</h2>
+        <p class="module-desc">Visualize the variational free energy surface and watch agents perform gradient descent to minimize surprise. <span class="math-inline">F = \mathbb{E}_q[\ln q(s) - \ln p(o,s)]</span></p>
+      </div>
+      <div class="module-body">
+        <div class="viz-container" id="landscape-viz"></div>
+        <div class="control-panel" id="landscape-controls">
+          <h3>Parameters</h3>
+          <div class="control-group">
+            <label>Observation (o)</label>
+            <input type="range" id="landscape-obs" min="-3" max="3" step="0.1" value="1.5" />
+            <span class="val-display" id="landscape-obs-val">1.5</span>
+          </div>
+          <div class="control-group">
+            <label>Prior Mean (μ₀)</label>
+            <input type="range" id="landscape-prior-mean" min="-3" max="3" step="0.1" value="0" />
+            <span class="val-display" id="landscape-prior-mean-val">0.0</span>
+          </div>
+          <div class="control-group">
+            <label>Prior Precision (π₀)</label>
+            <input type="range" id="landscape-prior-prec" min="0.1" max="5" step="0.1" value="1" />
+            <span class="val-display" id="landscape-prior-prec-val">1.0</span>
+          </div>
+          <div class="control-group">
+            <label>Likelihood Precision (πₗ)</label>
+            <input type="range" id="landscape-lik-prec" min="0.1" max="5" step="0.1" value="2" />
+            <span class="val-display" id="landscape-lik-prec-val">2.0</span>
+          </div>
+          <div class="control-group">
+            <label>Belief Particles</label>
+            <input type="range" id="landscape-particles" min="1" max="50" step="1" value="10" />
+            <span class="val-display" id="landscape-particles-val">10</span>
+          </div>
+          <div class="btn-row">
+            <button class="action-btn" id="landscape-run">▶ Run Gradient Descent</button>
+            <button class="action-btn secondary" id="landscape-reset">↺ Reset</button>
+          </div>
+          <div class="info-box" id="landscape-info">
+            <h4>Free Energy Decomposition</h4>
+            <div class="math-block">$$F = \underbrace{D_{KL}[q(s) \| p(s|o)]}_{\text{Divergence}} - \underbrace{\ln p(o)}_{\text{Log Evidence}}$$</div>
+            <p>Minimizing F makes beliefs q(s) approximate the true posterior p(s|o) while maximizing model evidence. The landscape shows F as a function of the belief mean μ and precision π.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Module 2: Markov Blanket Constructor -->
+    <section class="module-panel" id="mod-markov">
+      <div class="module-header">
+        <h2>Markov Blanket Constructor</h2>
+        <p class="module-desc">Build and explore Markov blankets — the statistical boundary between self and world. Internal states are conditionally independent of external states given the blanket (sensory + active states).</p>
+      </div>
+      <div class="module-body">
+        <div class="viz-container" id="markov-viz"></div>
+        <div class="control-panel" id="markov-controls">
+          <h3>Blanket Builder</h3>
+          <div class="control-group">
+            <label>Preset Systems</label>
+            <select id="markov-preset">
+              <option value="cell">Biological Cell</option>
+              <option value="brain">Brain Region</option>
+              <option value="organism">Organism</option>
+              <option value="custom">Custom (click to add)</option>
+            </select>
+          </div>
+          <div class="control-group">
+            <label>Animation Speed</label>
+            <input type="range" id="markov-speed" min="0.1" max="3" step="0.1" value="1" />
+            <span class="val-display" id="markov-speed-val">1.0x</span>
+          </div>
+          <div class="control-group">
+            <label>Show Information Flow</label>
+            <input type="checkbox" id="markov-flow" checked />
+          </div>
+          <div class="btn-row">
+            <button class="action-btn" id="markov-animate">▶ Animate Flow</button>
+            <button class="action-btn secondary" id="markov-reset">↺ Reset</button>
+          </div>
+          <div class="legend-box">
+            <h4>Node Types</h4>
+            <div class="legend-item"><span class="legend-dot" style="background:#ff6b6b"></span> Internal States (μ)</div>
+            <div class="legend-item"><span class="legend-dot" style="background:#4ecdc4"></span> Sensory States (s)</div>
+            <div class="legend-item"><span class="legend-dot" style="background:#ffd166"></span> Active States (a)</div>
+            <div class="legend-item"><span class="legend-dot" style="background:#6c7b95"></span> External States (η)</div>
+          </div>
+          <div class="info-box">
+            <h4>The Markov Blanket</h4>
+            <div class="math-block">$$p(\mu | \eta, s, a) = p(\mu | s, a)$$</div>
+            <p>Internal states μ are shielded from external states η by the blanket B = {s, a}. Sensory states carry information inward; active states carry influence outward. This partition is the foundation of selfhood in the FEP.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Module 3: Predictive Coding Hierarchy -->
+    <section class="module-panel" id="mod-predictive">
+      <div class="module-header">
+        <h2>Predictive Coding Hierarchy</h2>
+        <p class="module-desc">Step through a hierarchical predictive coding network. Top-down predictions meet bottom-up prediction errors. Perception is inference — the brain is a hypothesis-testing machine.</p>
+      </div>
+      <div class="module-body">
+        <div class="viz-container" id="predictive-viz">
+          <canvas id="predictive-canvas"></canvas>
+        </div>
+        <div class="control-panel" id="predictive-controls">
+          <h3>Hierarchy Controls</h3>
+          <div class="control-group">
+            <label>Stimulus Type</label>
+            <select id="predictive-stimulus">
+              <option value="expected">Expected Stimulus</option>
+              <option value="surprising">Surprising Stimulus</option>
+              <option value="ambiguous">Ambiguous Stimulus</option>
+              <option value="absent">Missing Stimulus</option>
+            </select>
+          </div>
+          <div class="control-group">
+            <label>Number of Levels</label>
+            <input type="range" id="predictive-levels" min="3" max="6" step="1" value="4" />
+            <span class="val-display" id="predictive-levels-val">4</span>
+          </div>
+          <div class="control-group">
+            <label>Precision Weighting</label>
+            <input type="range" id="predictive-precision" min="0.1" max="3" step="0.1" value="1" />
+            <span class="val-display" id="predictive-precision-val">1.0</span>
+          </div>
+          <div class="control-group">
+            <label>Update Speed (ms)</label>
+            <input type="range" id="predictive-speed" min="50" max="500" step="50" value="200" />
+            <span class="val-display" id="predictive-speed-val">200</span>
+          </div>
+          <div class="btn-row">
+            <button class="action-btn" id="predictive-inject">⚡ Inject Stimulus</button>
+            <button class="action-btn secondary" id="predictive-step">→ Step</button>
+            <button class="action-btn secondary" id="predictive-reset">↺ Reset</button>
+          </div>
+          <div class="info-box">
+            <h4>Prediction Error Dynamics</h4>
+            <div class="math-block">$$\varepsilon_i = o_i - g_i(\mu_{i+1})$$</div>
+            <div class="math-block">$$\dot{\mu}_i = \varepsilon_i - \varepsilon_{i+1} \cdot \frac{\partial g_{i+1}}{\partial \mu_i}$$</div>
+            <p>Each layer predicts the activity below. Prediction errors ε propagate upward, weighted by precision π. High precision → errors dominate (sensory-driven). Low precision → priors dominate (belief-driven).</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Module 4: Active Inference Agent Arena -->
+    <section class="module-panel" id="mod-agent">
+      <div class="module-header">
+        <h2>Active Inference Agent Arena</h2>
+        <p class="module-desc">Watch an active inference agent navigate a grid world by minimizing expected free energy. Compare with a Q-learning agent side-by-side. See how curiosity emerges naturally from the math.</p>
+      </div>
+      <div class="module-body dual-viz">
+        <div class="dual-panel">
+          <h3 class="panel-title">Active Inference Agent</h3>
+          <canvas id="agent-ai-canvas"></canvas>
+          <div class="agent-stats" id="ai-stats">
+            <span>Steps: <b id="ai-steps">0</b></span>
+            <span>Reward: <b id="ai-reward">0</b></span>
+            <span>Explored: <b id="ai-explored">0%</b></span>
+          </div>
+        </div>
+        <div class="dual-panel">
+          <h3 class="panel-title">Q-Learning Agent</h3>
+          <canvas id="agent-ql-canvas"></canvas>
+          <div class="agent-stats" id="ql-stats">
+            <span>Steps: <b id="ql-steps">0</b></span>
+            <span>Reward: <b id="ql-reward">0</b></span>
+            <span>Explored: <b id="ql-explored">0%</b></span>
+          </div>
+        </div>
+        <div class="control-panel wide" id="agent-controls">
+          <h3>Arena Controls</h3>
+          <div class="controls-row">
+            <div class="control-group">
+              <label>Grid Size</label>
+              <input type="range" id="agent-grid" min="5" max="15" step="1" value="8" />
+              <span class="val-display" id="agent-grid-val">8×8</span>
+            </div>
+            <div class="control-group">
+              <label>Epistemic Drive (curiosity)</label>
+              <input type="range" id="agent-epistemic" min="0" max="2" step="0.1" value="1" />
+              <span class="val-display" id="agent-epistemic-val">1.0</span>
+            </div>
+            <div class="control-group">
+              <label>Pragmatic Drive (goal)</label>
+              <input type="range" id="agent-pragmatic" min="0" max="2" step="0.1" value="1" />
+              <span class="val-display" id="agent-pragmatic-val">1.0</span>
+            </div>
+            <div class="control-group">
+              <label>Q-Learning ε (exploration)</label>
+              <input type="range" id="agent-epsilon" min="0" max="1" step="0.05" value="0.3" />
+              <span class="val-display" id="agent-epsilon-val">0.30</span>
+            </div>
+            <div class="control-group">
+              <label>Sim Speed (ms/step)</label>
+              <input type="range" id="agent-speed" min="20" max="500" step="20" value="100" />
+              <span class="val-display" id="agent-speed-val">100</span>
+            </div>
+          </div>
+          <div class="btn-row">
+            <button class="action-btn" id="agent-run">▶ Run Both</button>
+            <button class="action-btn secondary" id="agent-step">→ Step</button>
+            <button class="action-btn secondary" id="agent-reset">↺ New World</button>
+          </div>
+          <div class="info-box">
+            <h4>Expected Free Energy</h4>
+            <div class="math-block">$$G(\pi) = \underbrace{-\mathbb{E}[\text{D}_{KL}[q(s|o,\pi)\|q(s|\pi)]]}_{\text{Epistemic Value (info gain)}} - \underbrace{\mathbb{E}[\ln p(o|C)]}_{\text{Pragmatic Value}}$$</div>
+            <p>The active inference agent selects policies π that minimize G. Epistemic value drives exploration (reducing uncertainty). Pragmatic value drives exploitation (seeking preferred outcomes). No exploration-exploitation trade-off needed — it emerges naturally.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Module 5: Bayesian Belief Updater -->
+    <section class="module-panel" id="mod-bayesian">
+      <div class="module-header">
+        <h2>Bayesian Belief Updater</h2>
+        <p class="module-desc">Watch beliefs update in real-time as evidence arrives. Drag priors and likelihoods to see how precision weighting determines the posterior — the brain's best guess about hidden states.</p>
+      </div>
+      <div class="module-body">
+        <div class="viz-container" id="bayesian-viz">
+          <canvas id="bayesian-canvas"></canvas>
+        </div>
+        <div class="control-panel" id="bayesian-controls">
+          <h3>Distribution Controls</h3>
+          <div class="control-group">
+            <label>Prior Mean (μ₀)</label>
+            <input type="range" id="bayes-prior-mean" min="-4" max="4" step="0.1" value="-1" />
+            <span class="val-display" id="bayes-prior-mean-val">-1.0</span>
+          </div>
+          <div class="control-group">
+            <label>Prior Precision (π₀)</label>
+            <input type="range" id="bayes-prior-prec" min="0.1" max="5" step="0.1" value="1" />
+            <span class="val-display" id="bayes-prior-prec-val">1.0</span>
+          </div>
+          <div class="control-group">
+            <label>Likelihood Mean (data)</label>
+            <input type="range" id="bayes-lik-mean" min="-4" max="4" step="0.1" value="2" />
+            <span class="val-display" id="bayes-lik-mean-val">2.0</span>
+          </div>
+          <div class="control-group">
+            <label>Likelihood Precision (πₗ)</label>
+            <input type="range" id="bayes-lik-prec" min="0.1" max="5" step="0.1" value="2" />
+            <span class="val-display" id="bayes-lik-prec-val">2.0</span>
+          </div>
+          <div class="control-group">
+            <label>Sequential Observations</label>
+            <input type="range" id="bayes-seq-count" min="1" max="20" step="1" value="1" />
+            <span class="val-display" id="bayes-seq-count-val">1</span>
+          </div>
+          <div class="btn-row">
+            <button class="action-btn" id="bayes-update">⚡ Update Belief</button>
+            <button class="action-btn" id="bayes-sequential">▶ Sequential Update</button>
+            <button class="action-btn secondary" id="bayes-reset">↺ Reset</button>
+          </div>
+          <div class="info-box">
+            <h4>Precision-Weighted Inference</h4>
+            <div class="math-block">$$\mu_{post} = \frac{\pi_0 \mu_0 + \pi_\ell \mu_\ell}{\pi_0 + \pi_\ell}$$</div>
+            <div class="math-block">$$\pi_{post} = \pi_0 + \pi_\ell$$</div>
+            <p>The posterior mean is a precision-weighted average of prior and likelihood. Higher precision = more influence. This is how the brain resolves conflicting information — trusted sources get more weight.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Module 6: Expected Free Energy Decomposition -->
+    <section class="module-panel" id="mod-efg">
+      <div class="module-header">
+        <h2>Expected Free Energy Decomposition</h2>
+        <p class="module-desc">Explore how expected free energy G decomposes into epistemic (information-seeking) and pragmatic (goal-seeking) components. Adjust preferences and watch behavior shift between exploration and exploitation.</p>
+      </div>
+      <div class="module-body">
+        <div class="viz-container" id="efg-viz">
+          <canvas id="efg-canvas"></canvas>
+        </div>
+        <div class="control-panel" id="efg-controls">
+          <h3>Policy Evaluation</h3>
+          <div class="control-group">
+            <label>Number of Policies</label>
+            <input type="range" id="efg-policies" min="3" max="10" step="1" value="5" />
+            <span class="val-display" id="efg-policies-val">5</span>
+          </div>
+          <div class="control-group">
+            <label>Epistemic Weight (ω_e)</label>
+            <input type="range" id="efg-epistemic-w" min="0" max="3" step="0.1" value="1" />
+            <span class="val-display" id="efg-epistemic-w-val">1.0</span>
+          </div>
+          <div class="control-group">
+            <label>Pragmatic Weight (ω_p)</label>
+            <input type="range" id="efg-pragmatic-w" min="0" max="3" step="0.1" value="1" />
+            <span class="val-display" id="efg-pragmatic-w-val">1.0</span>
+          </div>
+          <div class="control-group">
+            <label>Preference Sharpness</label>
+            <input type="range" id="efg-pref-sharp" min="0.1" max="5" step="0.1" value="1" />
+            <span class="val-display" id="efg-pref-sharp-val">1.0</span>
+          </div>
+          <div class="control-group">
+            <label>Uncertainty Level</label>
+            <input type="range" id="efg-uncertainty" min="0.1" max="3" step="0.1" value="1.5" />
+            <span class="val-display" id="efg-uncertainty-val">1.5</span>
+          </div>
+          <div class="btn-row">
+            <button class="action-btn" id="efg-evaluate">⚡ Evaluate Policies</button>
+            <button class="action-btn secondary" id="efg-reset">↺ Reset</button>
+          </div>
+          <div class="info-box">
+            <h4>Why Curiosity Is Free</h4>
+            <div class="math-block">$$G(\pi) = -\omega_e \cdot \underbrace{I(o;s|\pi)}_{\text{Info Gain}} - \omega_p \cdot \underbrace{\mathbb{E}[\ln p(o|C)]}_{\text{Pragmatic}}$$</div>
+            <p>When uncertainty is high, epistemic value dominates → agent explores. When uncertainty is low, pragmatic value dominates → agent exploits. No ad-hoc exploration bonus needed — it falls out of the math.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Module 7: Information Geometry -->
+    <section class="module-panel" id="mod-geometry">
+      <div class="module-header">
+        <h2>Information Geometry Manifold</h2>
+        <p class="module-desc">Beliefs live on a curved statistical manifold. Explore the geometry of probability distributions — Fisher information as a metric tensor, KL divergence as geodesic distance, natural gradient descent.</p>
+      </div>
+      <div class="module-body">
+        <div class="viz-container" id="geometry-viz"></div>
+        <div class="control-panel" id="geometry-controls">
+          <h3>Manifold Controls</h3>
+          <div class="control-group">
+            <label>Distribution Family</label>
+            <select id="geometry-family">
+              <option value="gaussian">Gaussian (μ, σ)</option>
+              <option value="beta">Beta (α, β)</option>
+              <option value="categorical">Categorical (3-simplex)</option>
+            </select>
+          </div>
+          <div class="control-group">
+            <label>Show Geodesics</label>
+            <input type="checkbox" id="geometry-geodesics" checked />
+          </div>
+          <div class="control-group">
+            <label>Show Fisher Metric</label>
+            <input type="checkbox" id="geometry-fisher" checked />
+          </div>
+          <div class="control-group">
+            <label>Gradient Type</label>
+            <select id="geometry-gradient">
+              <option value="natural">Natural Gradient</option>
+              <option value="ordinary">Ordinary Gradient</option>
+              <option value="both">Compare Both</option>
+            </select>
+          </div>
+          <div class="control-group">
+            <label>Learning Rate</label>
+            <input type="range" id="geometry-lr" min="0.01" max="0.5" step="0.01" value="0.1" />
+            <span class="val-display" id="geometry-lr-val">0.10</span>
+          </div>
+          <div class="btn-row">
+            <button class="action-btn" id="geometry-descend">▶ Run Gradient Descent</button>
+            <button class="action-btn secondary" id="geometry-reset">↺ Reset</button>
+          </div>
+          <div class="info-box">
+            <h4>The Fisher Information Metric</h4>
+            <div class="math-block">$$g_{ij}(\theta) = \mathbb{E}\left[\frac{\partial \ln p(x|\theta)}{\partial \theta_i}\frac{\partial \ln p(x|\theta)}{\partial \theta_j}\right]$$</div>
+            <p>The Fisher information matrix defines a Riemannian metric on the space of probability distributions. Natural gradient descent follows geodesics on this manifold, converging faster than ordinary gradient descent — this is how the brain updates beliefs.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer id="app-footer">
+    <div class="footer-content">
+      <span>FreeEnergyLab — Built with Three.js, D3.js, KaTeX</span>
+      <span>Based on Karl Friston's Free Energy Principle (2006–2026)</span>
+      <span>All simulations run in-browser. No data leaves your machine.</span>
+    </div>
+  </footer>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
