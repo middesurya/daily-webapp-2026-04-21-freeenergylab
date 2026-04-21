@@ -244,6 +244,10 @@ export function initLandscape() {
     });
   });
 
+  document.getElementById('landscape-particles').addEventListener('input', () => {
+    if (!animating) fullRebuild();
+  });
+
   function animate() {
     requestAnimationFrame(animate);
     controls.update();

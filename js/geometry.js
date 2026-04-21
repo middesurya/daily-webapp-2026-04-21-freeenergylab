@@ -49,9 +49,6 @@ export function initGeometry() {
   }
 
   function fisherInfoBeta(a, b) {
-    const psiA = digamma(a);
-    const psiB = digamma(b);
-    const psiAB = digamma(a + b);
     const triA = trigamma(a);
     const triB = trigamma(b);
     const triAB = trigamma(a + b);
